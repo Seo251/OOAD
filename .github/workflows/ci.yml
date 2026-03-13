@@ -16,12 +16,15 @@ jobs:
       - name: Install build & analysis tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build g++ clang-tidy cppcheck
+          sudo apt-get install -y cmake ninja-build g++ clang-tidy cppcheck curl unzip
 
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
-      - name: Build
-        run: cmake --build build
+        run: cmake -S . -B build -G Ninja -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+      - name: Build (with Sonar build-wrapper)
+        run: |
+          curl -sSLo build-wrapper.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip -q build-wrapper.zip -d .
+          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output cmake --build build
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
@@ -42,7 +45,3 @@ jobs:
         uses: SonarSource/sonarcloud-github-action@v3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      - name: Debug compile_commands
-        run: |
-          ls -al build/compile_commands.json
-          head -n 40 build/compile_commands.json
