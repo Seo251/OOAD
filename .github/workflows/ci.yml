@@ -26,6 +26,11 @@ jobs:
           unzip -q build-wrapper.zip -d .
           ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output cmake --build build
 
+      - name: Debug bw-output
+        run: |
+          ls -al
+          ls -al bw-output || true
+
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
