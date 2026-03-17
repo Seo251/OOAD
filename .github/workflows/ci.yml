@@ -26,12 +26,17 @@ jobs:
             -DENABLE_TESTS=ON \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            -DCMAKE_CXX_FLAGS="--coverage" \
+            -DCMAKE_C_FLAGS="--coverage"
 
       - name: Build
         run: cmake --build build
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
+        # gcov 리포트 생성 (분석기가 읽을 수 있도록)
+        cd build
+        find . -name "*.gcno" -exec gcov {} +
 
       - name: Static Analysis - cppcheck
         run: |
@@ -62,3 +67,4 @@ jobs:
         with:
           args: >
             -Dsonar.cfamily.compile-commands=build/compile_commands.json
+            -Dsonar.cfamily.gcov.reportsPath=build
