@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop", "feature/*" ]
   pull_request:
 
 jobs:
@@ -12,21 +12,38 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 #소나클라우드 분석위한 깃 히스토리 가져오기
 
       - name: Install build & analysis tools
         run: |
           sudo apt-get update
+          sudo apt-get install -y build-essential
           sudo apt-get install -y cmake g++ clang-tidy cppcheck make
 
       - name: Configure
-        run: cmake -S . -B build -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER= -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        run: |
+          cmake -S . -B build \
+          -DENABLE_TESTS=ON \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="--coverage" \
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
+          -DCMAKE_C_COMPILER=/usr/bin/gcc \
+          -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+          -DCMAKE_C_COMPILER_LAUNCHER= \
+          -DCMAKE_CXX_COMPILER_LAUNCHER= \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
             
 
       - name: Build
         run: cmake --build build
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: |
+          ctest --test-dir build --output-on-failure
+
+          cd build
+          find . -name "*.gcno" -exec gcov {} +
 
       - name: Static Analysis - cppcheck
         run: |
@@ -40,6 +57,8 @@ jobs:
       - name: Static Analysis - clang-tidy
         run: |
           find src -name '*.cpp' -print0 | xargs -0 -n 1 clang-tidy -p build
+      
+      
       - name: Debug compile_commands first entry
         run: |
           python3 - << 'PY'
@@ -51,7 +70,19 @@ jobs:
           print("directory:", e.get("directory"))
           print("command:", (e.get("command","")[:400]))
           PY
+
+      #경로변경 삭제
+
+       #소나클라우드 방식 변경: 도커 -> 러너에 sonar scanner 직접 설치   
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v3
+        uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >
+             -X
+             -Dsonar.cfamily.compile-commands=build/compile_commands.json
+             -Dsonar.cfamily.gcov.reportsPath=build
+        #-X is optional.
+        
