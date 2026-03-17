@@ -20,10 +20,9 @@ jobs:
         
       - name: Install Build Wrapper
         run: |
-          # -L(리다이렉트 허용), -f(에러 시 즉시 중단) 옵션을 추가하여 안전하게 다운로드합니다.
-          curl -fL -sSLo build-wrapper.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86-64.zip
+          # wget을 사용하여 더 안정적으로 다운로드합니다.
+          wget -O build-wrapper.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86-64.zip
           unzip -o build-wrapper.zip
-          # 실행 권한 확인
           chmod +x ./build-wrapper-linux-x86-64/build-wrapper-linux-x86-64
 
       - name: Configure
