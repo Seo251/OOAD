@@ -98,13 +98,13 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
-          title: "🚀 CI/CD 리포트: ${{ github.repository }}"
+          title: "CI/CD 리포트: ${{ github.repository }}"
           description: |
             상태: ${{ job.status == 'success' && '✅ 성공' || '❌ 실패' }}
             브랜치: `${{ github.ref_name }}`
             작성자: ${{ github.actor }}
             
-            **📊 커버리지 리포트 확인하기**: 
-            [https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)
+            커버리지 리포트 확인하기: 
+            [https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/]
           color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
           username: "GitHub CI Bot"
