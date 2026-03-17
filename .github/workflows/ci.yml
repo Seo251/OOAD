@@ -17,13 +17,24 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake g++ clang-tidy cppcheck make
+        
+          # [추가] 1. SonarCloud 전용 Build Wrapper 설치
+      - name: Install Build Wrapper
+        run: |
+          curl -sSLo build-wrapper-linux-x86-64.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86-64.zip
+          unzip -o build-wrapper-linux-x86-64.zip
 
       - name: Configure
         run: cmake -S . -B build -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER= -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
             
-
-      - name: Build
-        run: cmake --build build
+        # [수정] 2. Build 명령어를 Build Wrapper로 감싸기
+      - name: Build with Build Wrapper
+        run: |
+          ./build-wrapper-linux-x86-64/build-wrapper-linux-x86-64 --out-dir bw-output cmake --build build
+      
+          
+     #- name: Build
+     #   run: cmake --build build
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
@@ -52,7 +63,11 @@ jobs:
           print("command:", (e.get("command","")[:400]))
           PY
 
+      # [수정] 3. SonarCloud 분석 실행 (bw-output 경로 지정)
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.cfamily.build-wrapper-output=bw-output
