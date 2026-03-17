@@ -63,4 +63,3 @@ jobs:
           args: >
             -Dsonar.cfamily.build-wrapper-output=bw-output
             -Dsonar.cfamily.gcov.reportsPath=build
-            # 여기에 compile-commands 관련 설정이 있다면 삭제!
