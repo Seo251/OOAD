@@ -26,9 +26,10 @@ jobs:
 
       - name: Configure
         run: |
+          # 1. 시스템 컴파일러 경로를 /usr/bin/g++로 강제 고정하여 CMake 실행
           cmake -S . -B build \
-            -DCMAKE_C_COMPILER=/usr/bin/gcc \
             -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+            -DCMAKE_C_COMPILER=/usr/bin/gcc \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DENABLE_TESTS=ON \
             -DCMAKE_BUILD_TYPE=Debug \
@@ -67,13 +68,17 @@ jobs:
               print("File not found!")
           PY
 
-      - name: Fix paths in compile_commands.json
+      - name: Fix paths and compiler for SonarCloud
         run: |
-          # 1. 절대 경로를 상대 경로로 치환
+          # 2. 파일 내의 절대 경로를 현재 작업 디렉토리 기준으로 상대 경로화
           sed -i "s|$(pwd)/||g" build/compile_commands.json
-          # 2. 컴파일러 경로를 SonarCloud가 인식하기 쉬운 이름으로 강제 치환
+          
+          # 3. 핵심: 복잡한 컴파일러 실행 파일 경로를 단순 'g++'와 'gcc'로 치환
+          # 분석기가 "이건 표준 g++ 분석 엔진을 쓰면 되겠구나"라고 즉시 판단하게 만듭니다.
           sed -i 's|/usr/bin/c++|g++|g' build/compile_commands.json
+          sed -i 's|/usr/bin/g++|g++|g' build/compile_commands.json
           sed -i 's|/usr/bin/cc|gcc|g' build/compile_commands.json
+          sed -i 's|/usr/bin/gcc|gcc|g' build/compile_commands.json
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v3
@@ -84,3 +89,5 @@ jobs:
             -Dsonar.cfamily.compile-commands=build/compile_commands.json
             -Dsonar.cfamily.gcov.reportsPath=build
             -Dsonar.projectBaseDir=.
+            -Dsonar.c.compiler=gcc
+            -Dsonar.cpp.compiler=g++
