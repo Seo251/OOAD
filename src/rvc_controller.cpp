@@ -5,7 +5,7 @@ const char* RvcController::next_action(bool front_obstacle,
                                        bool right_obstacle,
                                        bool dust_detected) const
 {
-    //test
+    //testtestest
     if (dust_detected) {
         return "BOOST_CLEANING";
     }
