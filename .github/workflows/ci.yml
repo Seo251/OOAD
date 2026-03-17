@@ -55,11 +55,18 @@ jobs:
         run: |
           find src -name '*.cpp' -print0 | xargs -0 -n 1 clang-tidy -p build
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v3
+      - name: Install SonarScanner
+        run: |
+          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip
+          unzip -o sonar-scanner.zip
+          echo "${{ github.workspace }}/sonar-scanner-6.2.1.4610-linux-x64/bin" >> $GITHUB_PATH
+
+      - name: SonarCloud Scan (Manual Execution)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.cfamily.compile-commands=bw-output/compile_commands.json
+        run: |
+          sonar-scanner \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.cfamily.compile-commands=bw-output/compile_commands.json \
             -Dsonar.cfamily.gcov.reportsPath=build
