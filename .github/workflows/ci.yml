@@ -19,7 +19,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential
-          sudo apt-get install -y cmake g++ clang-tidy cppcheck make
+          sudo apt-get install -y cmake g++ clang-tidy cppcheck make lcov
 
       - name: Configure
         run: |
@@ -42,8 +42,15 @@ jobs:
         run: |
           ctest --test-dir build --output-on-failure
 
-          cd build
-          find . -name "*.gcno" -exec gcov {} +
+          lcov -c -d build -o coverage.info #data collection
+          lcov -r coverage.info '/usr/*' '${{ github.workspace }}/tests/*' -o coverage.info #exclude system and test files
+          genhtml coverage.info -o coverage_html #generate HTML report
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: coverage_html # 배포할 HTML 리포트 폴더
+          branch: gh-pages
 
       - name: Static Analysis - cppcheck
         run: |
