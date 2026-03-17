@@ -2,71 +2,87 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop", "feature/*" ]
   pull_request:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 #소나클라우드 분석위한 깃 히스토리 가져오기
 
       - name: Install build & analysis tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake clang-tidy cppcheck make
-          sudo apt-get install -y gcc-11 g++-11
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 100
-
-      - name: Install SonarCloud Build Wrapper
-        run: |
-          mkdir -p $HOME/.sonar
-          curl -sSLo $HOME/.sonar/build-wrapper-linux-x86.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
-          unzip -o $HOME/.sonar/build-wrapper-linux-x86.zip -d $HOME/.sonar/
-          # 바이너리가 들어있는 정확한 디렉토리를 PATH에 추가
-          echo "$HOME/.sonar/build-wrapper-linux-x86" >> $GITHUB_PATH
+          sudo apt-get install -y build-essential
+          sudo apt-get install -y cmake g++ clang-tidy cppcheck make
 
       - name: Configure
         run: |
-          cmake -S . -B build -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake -S . -B build \
+          -DENABLE_TESTS=ON \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="--coverage" \
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
+          -DCMAKE_C_COMPILER=/usr/bin/gcc \
+          -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+          -DCMAKE_C_COMPILER_LAUNCHER= \
+          -DCMAKE_CXX_COMPILER_LAUNCHER= \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            
 
-      - name: Build with Build Wrapper
-        run: |
-          # build-wrapper 실행 (환경 기록)
-          build-wrapper-linux-x86-64 --out-dir bw-output cmake --build build
+      - name: Build
+        run: cmake --build build
 
-      - name: Test and Coverage
+      - name: Test
         run: |
           ctest --test-dir build --output-on-failure
-          cd build && find . -name "*.gcno" -exec gcov {} +
+
+          cd build
+          find . -name "*.gcno" -exec gcov {} +
 
       - name: Static Analysis - cppcheck
         run: |
-          cppcheck --enable=all --inconclusive --std=c++17 \
-            --error-exitcode=0 --suppress=missingIncludeSystem \
-            -I src src
+          cppcheck \
+            --enable=all --inconclusive --std=c++17 \
+            --error-exitcode=0 \
+            --suppress=missingIncludeSystem \
+            -I src \
+            src
 
       - name: Static Analysis - clang-tidy
         run: |
           find src -name '*.cpp' -print0 | xargs -0 -n 1 clang-tidy -p build
-
-      - name: Install SonarScanner
+      
+      
+      - name: Debug compile_commands first entry
         run: |
-          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip
-          unzip -o sonar-scanner.zip
-          echo "${{ github.workspace }}/sonar-scanner-6.2.1.4610-linux-x64/bin" >> $GITHUB_PATH
+          python3 - << 'PY'
+          import json
+          d=json.load(open('build/compile_commands.json'))
+          print("entries:", len(d))
+          e=d[0]
+          print("file:", e.get("file"))
+          print("directory:", e.get("directory"))
+          print("command:", (e.get("command","")[:400]))
+          PY
 
-      - name: SonarCloud Scan (Manual Execution)
+      #경로변경 삭제
+
+       #소나클라우드 방식 변경: 도커 -> 러너에 sonar scanner 직접 설치   
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          sonar-scanner \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token=$SONAR_TOKEN \
-            -Dsonar.cfamily.compile-commands=bw-output/compile_commands.json \
-            -Dsonar.cfamily.gcov.reportsPath=build
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >
+             -X
+             -Dsonar.cfamily.compile-commands=build/compile_commands.json
+             -Dsonar.cfamily.gcov.reportsPath=build
+        #-X is optional.
+        
