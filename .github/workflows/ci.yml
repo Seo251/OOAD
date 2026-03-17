@@ -52,11 +52,6 @@ jobs:
           print("command:", (e.get("command","")[:400]))
           PY
 
-      - name: Fix paths in compile_commands.json
-        run: |
-          # json 파일 내부의 절대 경로를 현재 실행 환경의 경로로 강제 치환합니다.
-          sed -i "s|/home/runner/work/OOAD/OOAD|${{ github.workspace }}|g" build/compile_commands.json
-
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v3
         env:
