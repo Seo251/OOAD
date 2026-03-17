@@ -77,5 +77,6 @@ jobs:
           args: >
             -Dsonar.cfamily.compile-commands=build/compile_commands.json
             -Dsonar.cfamily.gcov.reportsPath=build
-            -Dsonar.c.compiler=gcc
-            -Dsonar.cpp.compiler=g++
+            -Dsonar.projectBaseDir=.
+            -Dsonar.lang.opt.cpp.compiler=g++
+            -Dsonar.lang.opt.c.compiler=gcc
