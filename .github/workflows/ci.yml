@@ -18,11 +18,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake g++ clang-tidy cppcheck make
         
-          # [추가] 1. SonarCloud 전용 Build Wrapper 설치
       - name: Install Build Wrapper
         run: |
+          # -L 옵션(리다이렉트 추적)을 추가하여 정확한 파일을 다운로드합니다.
           curl -sSLo build-wrapper-linux-x86-64.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86-64.zip
-          unzip -o build-wrapper-linux-x86-64.zip
+          
+          # 파일이 비어있는지 확인하고 압축을 풉니다.
+          if [ -s build-wrapper-linux-x86-64.zip ]; then
+            unzip -o build-wrapper-linux-x86-64.zip
+          else
+            echo "Download failed: File is empty"
+            exit 1
+          fi
 
       - name: Configure
         run: cmake -S . -B build -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER= -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
