@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
@@ -18,17 +18,22 @@ jobs:
       - name: Install build & analysis tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ clang-tidy cppcheck make
+          sudo apt-get install -y cmake clang-tidy cppcheck make
+          sudo apt-get install -y gcc-11 g++-11
+          # 시스템 기본 컴파일러를 g++-11로 고정
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 100
 
       - name: Configure
         run: |
           cmake -S . -B build \
+            -DCMAKE_C_COMPILER=/usr/bin/gcc \
+            -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DENABLE_TESTS=ON \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DCMAKE_CXX_FLAGS="--coverage" \
-            -DCMAKE_C_FLAGS="--coverage" \
-            -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+            -DCMAKE_C_FLAGS="--coverage"
 
       - name: Build
         run: cmake --build build
