@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install build & analysis tools
         run: |
@@ -19,9 +21,13 @@ jobs:
           sudo apt-get install -y cmake g++ clang-tidy cppcheck make
 
       - name: Configure
-        run: cmake -S . -B build -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER= -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-         
-     - name: Build
+        run: |
+          cmake -S . -B build \
+            -DENABLE_TESTS=ON \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Build
         run: cmake --build build
 
       - name: Test
@@ -29,29 +35,26 @@ jobs:
 
       - name: Static Analysis - cppcheck
         run: |
-          cppcheck \
-            --enable=all --inconclusive --std=c++17 \
-            --error-exitcode=0 \
-            --suppress=missingIncludeSystem \
-            -I src \
-            src
+          cppcheck --enable=all --inconclusive --std=c++17 \
+            --error-exitcode=0 --suppress=missingIncludeSystem \
+            -I src src
 
       - name: Static Analysis - clang-tidy
         run: |
           find src -name '*.cpp' -print0 | xargs -0 -n 1 clang-tidy -p build
-      - name: Debug compile_commands first entry
+
+      - name: Debug compile_commands
         run: |
           python3 - << 'PY'
-          import json
-          d=json.load(open('build/compile_commands.json'))
-          print("entries:", len(d))
-          e=d[0]
-          print("file:", e.get("file"))
-          print("directory:", e.get("directory"))
-          print("command:", (e.get("command","")[:400]))
+          import json, os
+          path = 'build/compile_commands.json'
+          if os.path.exists(path):
+              d = json.load(open(path))
+              print(f"Total entries: {len(d)}")
+          else:
+              print("File not found!")
           PY
 
-      # [수정] 3. SonarCloud 분석 실행 (bw-output 경로 지정)
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v3
         env:
