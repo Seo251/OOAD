@@ -64,10 +64,11 @@ jobs:
 
       - name: Fix paths in compile_commands.json
         run: |
-          # 절대 경로를 상대 경로로 변환
+          # 1. 절대 경로를 상대 경로로 치환
           sed -i "s|$(pwd)/||g" build/compile_commands.json
-          # 혹은 가끔 /github/workspace/ 가 남아있는 경우를 대비해 한번 더 처리
-          sed -i "s|/github/workspace/||g" build/compile_commands.json
+          # 2. 컴파일러 경로를 SonarCloud가 인식하기 쉬운 이름으로 강제 치환
+          sed -i 's|/usr/bin/c++|g++|g' build/compile_commands.json
+          sed -i 's|/usr/bin/cc|gcc|g' build/compile_commands.json
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v3
@@ -78,5 +79,3 @@ jobs:
             -Dsonar.cfamily.compile-commands=build/compile_commands.json
             -Dsonar.cfamily.gcov.reportsPath=build
             -Dsonar.projectBaseDir=.
-            -Dsonar.lang.opt.cpp.compiler=g++
-            -Dsonar.lang.opt.c.compiler=gcc
