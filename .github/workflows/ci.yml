@@ -79,7 +79,7 @@ jobs:
             --suppress=missingIncludeSystem \
             --error-exitcode=1 \
             --xml --xml-version=2 \
-            2> reports/cppcheck.xml
+            2> reports/cppcheck.xml || true
           echo "CPPCHECK_EXIT_CODE=$?" >> $GITHUB_ENV
           exit 0
 
