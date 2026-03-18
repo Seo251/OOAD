@@ -77,7 +77,7 @@ jobs:
             --std=c++17 \
             --inline-suppr \
             --suppress=missingIncludeSystem \
-            --error-exitcode=0 \
+            --error-exitcode=1 \
             --xml --xml-version=2 \
             2> reports/cppcheck.xml
           echo "CPPCHECK_EXIT_CODE=$?" >> $GITHUB_ENV
