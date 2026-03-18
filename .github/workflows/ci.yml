@@ -54,13 +54,6 @@ jobs:
             '*/build/*' \
             --output-file coverage.info \
             --ignore-errors mismatch,unused
-
-          # 4. [핵심] 절대 경로를 상대 경로로 변환
-          sed -i "s|$(pwd)/||g" coverage.info
-    
-          # 5. 디버깅용 출력 (역슬래시 제거함)
-          echo "--- Coverage Report Preview ---"
-          head -n 15 coverage.info
           
           # 6. HTML 리포트 생성
           genhtml coverage.info -o coverage_html
